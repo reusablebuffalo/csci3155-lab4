@@ -115,4 +115,5 @@ def zip[A,B](xs:List[A], ys:List[B]) : List[(A,B)] = (xs,ys) match {
 
 // x.f or x["f"] are exactly the same
 // similar to structs in c, or simplified version of python classes
-// 
+//
+compressRec(List(1,2,2,2,3,4,4))

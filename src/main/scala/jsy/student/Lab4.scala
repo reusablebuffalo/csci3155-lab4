@@ -8,9 +8,9 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
   
   /*
    * CSCI 3155: Lab 4
-   * <Your Name>
+   * Ian Smith
    * 
-   * Partner: <Your Partner's Name>
+   * Partner: Josh
    * Collaborators: <Any Collaborators>
    */
 
@@ -38,17 +38,21 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
   /* Lists */
   
   def compressRec[A](l: List[A]): List[A] = l match {
-    case Nil | _ :: Nil => ???
-    case h1 :: (t1 @ (h2 :: _)) => ???
+    case Nil | _ :: Nil => l // there is nothing to compress
+    case h1 :: (t1 @ (h2 :: _)) => if (h1 == h2) compressRec(t1) else h1 :: compressRec(t1) // if h1 == h2, get rid of h1 and compress the rest,
+      // else keep h1 and compress the rest
   }
   
   def compressFold[A](l: List[A]): List[A] = l.foldRight(Nil: List[A]){
     (h, acc) => ???
   }
   
-  def mapFirst[A](l: List[A])(f: A => Option[A]): List[A] = l match {
-    case Nil => ???
-    case h :: t => ???
+  def mapFirst[A](l: List[A])(f: A => Option[A]): List[A] = l match { // function currying (named after Haskell Curry)
+    case Nil => Nil // if empty return empty
+    case h :: t => f(h) match { // else see if h is first element mapped by f
+      case None => h :: mapFirst(t)(f) // f does nothing, so call mapFirst on rest of the list
+      case Some(thing) => thing :: t // f does something, so return mapped thing with rest of list unchanged
+    }
   }
   
   /* Trees */
