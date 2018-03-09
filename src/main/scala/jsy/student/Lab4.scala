@@ -115,20 +115,44 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case TBool => TBool
         case tgot => err(tgot, e1) // if we didn't get bool through error
       }
-      case Binary(Plus, e1, e2) =>
-        ???
-      case Binary(Minus|Times|Div, e1, e2) => 
-        ???
-      case Binary(Eq|Ne, e1, e2) =>
-        ???
-      case Binary(Lt|Le|Gt|Ge, e1, e2) =>
-        ???
-      case Binary(And|Or, e1, e2) =>
-        ???
-      case Binary(Seq, e1, e2) =>
-        ???
-      case If(e1, e2, e3) =>
-        ???
+      case Binary(Plus, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (TNumber,TNumber) => TNumber
+        case (TString, TString) => TString
+        case (tgot , TNumber) => err(tgot, e1)
+        case (TNumber, tgot) => err(tgot, e2)
+        case (tgot , TString) => err(tgot, e1)
+        case (TString, tgot) => err(tgot, e2)
+      }
+      case Binary(Minus|Times|Div, e1, e2) => (typeof(env ,e1), typeof(env,e2)) match {
+        case (TNumber, TNumber) => TNumber
+        case (tgot , TNumber) => err(tgot, e1)
+        case (TNumber, tgot) => err(tgot, e2)
+      }
+      case Binary(Eq|Ne, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (t1, _) if hasFunctionTyp(t1) => err(t1,e1)
+        case (_, t2) if hasFunctionTyp(t2) => err(t2, e2)
+        case (t1, t2) => if (t1 == t2) TBool else err(t1, e1)
+      }
+      case Binary(Lt|Le|Gt|Ge, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (TNumber,TNumber) => TBool
+        case (TString, TString) => TBool
+        case (tgot , TNumber) => err(tgot, e1)
+        case (TNumber, tgot) => err(tgot, e2)
+        case (tgot , TString) => err(tgot, e1)
+        case (TString, tgot) => err(tgot, e2)
+      }
+      case Binary(And|Or, e1, e2) => (typeof(env,e1),typeof(env,e2)) match {
+        case (TBool, TBool) => TBool
+        case (tgot, TBool) => err(tgot, e1)
+        case (TBool, tgot) => err(tgot, e2)
+      }
+      case Binary(Seq, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
+        case (_ , t2) => t2
+      }
+      case If(e1, e2, e3) => (typeof(env,e1), typeof(env,e2), typeof(env,e3)) match {
+        case (TBool, t1, t2)  => if(t1 == t2) t1 else err(t1,e1)
+        case (tgot, _, _) => err(tgot, e1)
+      }
       case Function(p, params, tann, e1) => {
         // Bind to env1 an environment that extends env with an appropriate binding if
         // the function is potentially recursive.
