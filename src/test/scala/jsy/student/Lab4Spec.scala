@@ -50,6 +50,15 @@ class Lab4Spec(lab4: Lab4Like) extends FlatSpec {
       }
     }
 
+    "TypeArith" should "perform TypeArith" in {
+      assertResult(TNumber) {
+        typeof(empty, Binary(Plus, N(1.0), N(1.0)))
+      }
+      assertResult(TNumber) {
+        typeof(empty, Binary(Plus, Unary(Neg, N(1)), Binary(Div, N(2.0), N(3.0))))
+      }
+    }
+
     // Probably want to write some more tests for typeInfer, substitute, and step.
 
   }

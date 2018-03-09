@@ -118,10 +118,8 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(Plus, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (TNumber,TNumber) => TNumber
         case (TString, TString) => TString
-        case (tgot , TNumber) => err(tgot, e1)
-        case (TNumber, tgot) => err(tgot, e2)
-        case (tgot , TString) => err(tgot, e1)
-        case (TString, tgot) => err(tgot, e2)
+        case (tgot , TNumber|TString) => err(tgot, e1)
+        case (TNumber|TString, tgot) => err(tgot, e2)
       }
       case Binary(Minus|Times|Div, e1, e2) => (typeof(env ,e1), typeof(env,e2)) match {
         case (TNumber, TNumber) => TNumber
@@ -136,10 +134,9 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(Lt|Le|Gt|Ge, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (TNumber,TNumber) => TBool
         case (TString, TString) => TBool
-        case (tgot , TNumber) => err(tgot, e1)
-        case (TNumber, tgot) => err(tgot, e2)
-        case (tgot , TString) => err(tgot, e1)
-        case (TString, tgot) => err(tgot, e2)
+        case (tgot , TNumber|TString) => err(tgot, e1)
+        case (TNumber|TString, tgot) => err(tgot, e2)
+        case (tgot1, tgot2) => err(tgot1, e1)
       }
       case Binary(And|Or, e1, e2) => (typeof(env,e1),typeof(env,e2)) match {
         case (TBool, TBool) => TBool
@@ -151,7 +148,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       }
       case If(e1, e2, e3) => (typeof(env,e1), typeof(env,e2), typeof(env,e3)) match {
         case (TBool, t1, t2)  => if(t1 == t2) t1 else err(t1,e1)
-        case (tgot, _, _) => err(tgot, e1)
+        case (tgot, _, _) => err(tgot, e1) // maybe not necessary
       }
       case Function(p, params, tann, e1) => {
         // Bind to env1 an environment that extends env with an appropriate binding if
@@ -175,8 +172,8 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
           tret
         case tgot => err(tgot, e1)
       }
-      case Obj(fields) => ???
-      case GetField(e1, f) => ???
+      case Obj(fields) => TObj(fields map { case (fi, ei) => (fi, typeof(env, ei))})
+      case GetField(e1, f) => typeof(env, e1(f))
     }
   }
   
