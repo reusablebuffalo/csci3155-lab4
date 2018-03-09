@@ -101,18 +101,20 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
 
     e match {
       case Print(e1) => typeof(env, e1); TUndefined
-      case N(_) => ???
-      case B(_) => ???
-      case Undefined => ???
-      case S(_) => ???
-      case Var(x) => ???
-      case Decl(mode, x, e1, e2) => ???
+      case N(_) => TNumber
+      case B(_) => TBool
+      case Undefined => TUndefined
+      case S(_) => TString
+      case Var(x) => lookup(env, x)
+      case Decl(mode, x, e1, e2) => typeof(extend(env, x, typeof(env, e1)),e2)
       case Unary(Neg, e1) => typeof(env, e1) match {
         case TNumber => TNumber
         case tgot => err(tgot, e1)
       }
-      case Unary(Not, e1) =>
-        ???
+      case Unary(Not, e1) => typeof(env, e1) match {
+        case TBool => TBool
+        case tgot => err(tgot, e1) // if we didn't get bool through error
+      }
       case Binary(Plus, e1, e2) =>
         ???
       case Binary(Minus|Times|Div, e1, e2) => 
