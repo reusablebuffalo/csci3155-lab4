@@ -117,3 +117,5 @@ def zip[A,B](xs:List[A], ys:List[B]) : List[(A,B)] = (xs,ys) match {
 // similar to structs in c, or simplified version of python classes
 //
 compressRec(List(1,2,2,2,3,4,4))
+val myT = treeFromList(List(2,1,3))
+strictlyOrdered(myT)

@@ -63,7 +63,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
   def foldLeft[A](t: Tree)(z: A)(f: (A, Int) => A): A = {
     def loop(acc: A, t: Tree): A = t match {
       case Empty => acc // just return accumulated value (i.e. go left till Empty then return; then right till empty and return)
-      case Node(l, d, r) => loop(loop(f(acc,d),l),r) // loop left then right (left is inner and right is outer)
+      case Node(l, d, r) => loop(f(loop(acc,l),d),r) // loop left then eval current then loop right
     }
     loop(z, t)
   }
@@ -80,7 +80,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
     val (b, _) = foldLeft(t)((true, None: Option[Int])){
       (prev, d) => prev match {
         case (curBool, None) => (curBool , Some(d)) // first node in tree (this is temp min)
-        case (curBool, Some(n)) => (curBool && (n < d ), Some(n)) // return order bool && prev < next
+        case (curBool, Some(n)) => (curBool && (n < d), Some(d)) // return order bool && prev < next
       }
     }
     b
