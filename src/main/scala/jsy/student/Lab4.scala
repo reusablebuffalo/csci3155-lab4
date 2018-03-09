@@ -44,7 +44,10 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
   }
   
   def compressFold[A](l: List[A]): List[A] = l.foldRight(Nil: List[A]){
-    (h, acc) => ???
+    (h, acc) => acc match {
+      case Nil => h:: acc // if its Nil then our accumulator just becomes h::Nil
+      case head :: _ => if (head == h) acc else h :: acc // if h == head, dont add and return current acc other prepend to acc
+    }
   }
   
   def mapFirst[A](l: List[A])(f: A => Option[A]): List[A] = l match { // function currying (named after Haskell Curry)
@@ -59,8 +62,8 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
 
   def foldLeft[A](t: Tree)(z: A)(f: (A, Int) => A): A = {
     def loop(acc: A, t: Tree): A = t match {
-      case Empty => ???
-      case Node(l, d, r) => ???
+      case Empty => acc // just return accumulated value (i.e. go left till Empty then return; then right till empty and return)
+      case Node(l, d, r) => loop(loop(f(acc,d),l),r) // loop left then right (left is inner and right is outer)
     }
     loop(z, t)
   }
