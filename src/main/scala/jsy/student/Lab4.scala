@@ -78,7 +78,10 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
 
   def strictlyOrdered(t: Tree): Boolean = {
     val (b, _) = foldLeft(t)((true, None: Option[Int])){
-      ???
+      (prev, d) => prev match {
+        case (curBool, None) => (curBool , Some(d)) // first node in tree (this is temp min)
+        case (curBool, Some(n)) => (curBool && (n < d ), Some(n)) // return order bool && prev < next
+      }
     }
     b
   }
