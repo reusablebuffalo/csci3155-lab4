@@ -120,3 +120,7 @@ compressRec(List(1,2,2,2,3,4,4))
 val myT = treeFromList(List(2,1,3))
 strictlyOrdered(myT)
 parse("1+1")
+typeof(empty, parse("const g = (x: const number)=>x+x"))
+
+
+

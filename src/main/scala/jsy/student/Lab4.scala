@@ -10,7 +10,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
    * CSCI 3155: Lab 4
    * Ian Smith
    * 
-   * Partner: Josh
+   * Partner: Joshua Griffiths
    * Collaborators: <Any Collaborators>
    */
 
@@ -155,25 +155,36 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         // the function is potentially recursive.
         val env1 = (p, tann) match {
           /***** Add cases here *****/
-          case _ => err(TUndefined, e1)
+          case (Some(x), Some(t)) => extend(env, x, TFunction(params, t)) // if function has a name, it can be recursive
+          case (None, _) => env // no extension
+          case _ => err(TUndefined, e1)   // error
         }
         // Bind to env2 an environment that extends env1 with bindings for params.
-        val env2 = ???
+        val env2 = params.foldLeft(env1:TEnv)((currEnv, a) =>
+          a match {
+            case (s: String, MTyp(_, t)) => extend(currEnv, s, t)
+            case _ => currEnv
+          }) // convert params (String,Mtyp) to map
         // Infer the type of the function body
-        val t1 = ???
+        val t1 = typeof(env2, e1)
         // Check with the possibly annotated return type
-        ???
+        tann match {
+          case None => TFunction(params, t1)
+          case Some(t) => if(t1 == t) TFunction(params, t1) else err(TUndefined, e1)
+        }
       }
       case Call(e1, args) => typeof(env, e1) match {
         case TFunction(params, tret) if (params.length == args.length) =>
-          (params zip args).foreach {
-            ???
+          (params zip args).foreach { pa => pa._1 match {
+            case (_, MTyp(_,t)) => if (t != tret) err(tret, e1)
+            case _ => err(tret, e1)
+          }
           };
           tret
         case tgot => err(tgot, e1)
       }
       case Obj(fields) => TObj(fields map { case (fi, ei) => (fi, typeof(env, ei))})
-      case GetField(e1, f) => typeof(env, e1(f))
+      case GetField(e1, f) => ??? //typeof(env, e1(f))
     }
   }
   
