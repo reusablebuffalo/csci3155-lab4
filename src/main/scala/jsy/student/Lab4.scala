@@ -212,40 +212,60 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
     require(isValue(v1), s"inequalityVal: v1 ${v1} is not a value")
     require(isValue(v2), s"inequalityVal: v2 ${v2} is not a value")
     require(bop == Lt || bop == Le || bop == Gt || bop == Ge)
+    // COPIED FROM LAB 3 (removed toNumber)
     (v1, v2) match {
-      case _ => ??? // delete this line when done
+      case (S(s1), S(s2)) => bop match { // must be string or number
+        case Lt => s1<s2
+        case Le => s1<=s2
+        case Gt => s1>s2
+        case Ge => s1>=s2
+      }
+      case (N(n1), N(n2)) => bop match {
+        case Lt => n1 < n2
+        case Le => n1 <= n2
+        case Gt => n1 > n2
+        case Ge => n1 >= n2
+      }
     }
   }
 
   /* This should be the same code as from Lab 3 */
-  def iterate(e0: Expr)(next: (Expr, Int) => Option[Expr]): Expr = {
-    def loop(e: Expr, n: Int): Expr = ???
+  // COPIED DIRECTLY FROM LAB 3
+  def iterate(e0: Expr)(next: (Expr, Int) => Option[Expr]): Expr = { // iterate method will be called with step
+    def loop(e: Expr, n: Int): Expr = next(e,n) match { // find next
+      case None => e                    // if None, return e
+      case Some(exp) => loop(exp, n+1) // else recurse
+    }
     loop(e0, 0)
   }
 
   /* Capture-avoiding substitution in e replacing variables x with esub. */
   def substitute(e: Expr, esub: Expr, x: String): Expr = {
     def subst(e: Expr): Expr = e match {
-      case N(_) | B(_) | Undefined | S(_) => e
+      case N(_) | B(_) | Undefined | S(_) => e // base cases
       case Print(e1) => Print(substitute(e1, esub, x))
         /***** Cases from Lab 3 */
-      case Unary(uop, e1) => ???
-      case Binary(bop, e1, e2) => ???
-      case If(e1, e2, e3) => ???
-      case Var(y) => ???
-      case Decl(mode, y, e1, e2) => ???
+      case Unary(uop, e1) => Unary(uop, substitute(e1, esub, x)) // sub v for x in inner expressions
+      case Binary(bop, e1, e2) => Binary(bop, substitute(e1, esub,x), substitute(e2, esub,x)) // sub inner expressions
+      case If(e1, e2, e3) => If(substitute(e1, esub, x), substitute(e2, esub, x), substitute(e3, esub, x))
+      case Var(y) => if (x == y) esub else Var(y)
+      case Decl(mode, y, e1, e2) => {
+        val new_e2 = if(x == y) e2 else substitute(e2, esub, x)
+        Decl(mode, y, substitute(e1, esub, x), new_e2)
+      }
         /***** Cases needing adapting from Lab 3 */
-      case Function(p, params, tann, e1) =>
-        ???
-      case Call(e1, args) => ???
+      case Function(p, params, tann, e1) => p match {
+        case Some(pp) => if (pp == x || params.exists(pa => pa._1 == x)) e else substitute(e1, esub, x)
+        case None => if (params.exists(pa => pa._1 == x)) e else substitute(e1, esub, x)
+      }
+      case Call(e1, args) => Call(substitute(e1, esub, x), args map {(ei)=>substitute(ei,esub,x)}) // substitute in for all the args
         /***** New cases for Lab 4 */
-      case Obj(fields) => ???
-      case GetField(e1, f) => ???
+      case Obj(fields) => Obj(fields mapValues { (exp) => substitute(exp, esub, x)}) // substitute all x in all value expr with esub
+      case GetField(e1, f) =>  GetField(substitute(e1,esub,x), f)
     }
-
-    val fvs = freeVars(???)
-    def fresh(x: String): String = if (???) fresh(x + "$") else x
-    subst(???)
+    val fvs = freeVars(e)
+    def fresh(x: String): String = if (fvs contains x) fresh(x + "$") else x // will use this later with rename
+    subst(e)
   }
 
   /* Rename bound variables in e */
@@ -339,7 +359,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
        * cases you have missing. You then uncomment this line when you are sure all the cases
        * that you have left the ones that should be stuck.
        */
-      case _ => throw StuckError(e)
+      //case _ => throw StuckError(e)
     }
   }
   
