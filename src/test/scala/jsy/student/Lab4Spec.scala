@@ -60,7 +60,6 @@ class Lab4Spec(lab4: Lab4Like) extends FlatSpec {
     }
 
     // Probably want to write some more tests for typeInfer, substitute, and step.
-
   }
 
 }

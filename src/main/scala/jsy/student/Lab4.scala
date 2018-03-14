@@ -176,15 +176,23 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Call(e1, args) => typeof(env, e1) match {
         case TFunction(params, tret) if (params.length == args.length) =>
           (params zip args).foreach { pa => pa._1 match {
-            case (_, MTyp(_,t)) => if (t != tret) err(tret, e1)
+            case (_, MTyp(_,t)) => if (t != tret) err(tret, e1) // check that they are equal types (otherwise there is an error)
             case _ => err(tret, e1)
           }
           };
           tret
         case tgot => err(tgot, e1)
       }
-      case Obj(fields) => TObj(fields map { case (fi, ei) => (fi, typeof(env, ei))})
-      case GetField(e1, f) => ??? //typeof(env, e1(f))
+      case Obj(fields) => TObj(fields mapValues { (ei) => typeof(env, ei)}) // map expression to its type keep same keys (field names)
+
+      case GetField(e1, f) =>  typeof(env,e1) match { // get type of e1
+        case TObj(tfields) => tfields.get(f) match {// e1 must be an obj
+          case Some(value) => value // type of that field
+          case None => err(TObj(tfields), e1) // error
+        }
+        case tgot => err(tgot, e1) // anything besides object type
+      }
+
     }
   }
   
