@@ -307,8 +307,8 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
 
   /* Check whether or not an expression is reduced enough to be applied given a mode. */
   def isRedex(mode: Mode, e: Expr): Boolean = mode match {
-    case MConst => ???
-    case MName => ???
+    case MConst => if(!isValue(e)) true else false
+    case MName => false
   }
 
   def step(e: Expr): Expr = {
@@ -317,7 +317,57 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       /* Base Cases: Do Rules */
       case Print(v1) if isValue(v1) => println(pretty(v1)); Undefined
         /***** Cases needing adapting from Lab 3. */
-      case Unary(Neg, v1) if isValue(v1) => ???
+      case Unary(Neg, v1) if isValue(v1) => v1 match { // do neg
+        case N(n1) => N(-n1)
+        case _ => throw StuckError(e)
+      }
+      case Unary(Not, v1) if isValue(v1) => v1 match {
+        // do not
+        case B(b1) => B(!b1)
+        case _ => throw StuckError(e)
+      }
+      case Binary(Seq, v1, e2) if isValue(v1) => e2 // do seq
+      case Binary(Plus, v1, v2) if isValue(v1) && isValue(v2) => (v1,v2) match { // do plus
+        case (S(s1), S(s2)) => S(s1 + s2)
+        case (N(n1), N(n2)) => N(n1+n2)
+        case _ => throw StuckError(e)
+      }
+      case Binary(bop, v1, v2) if isValue(v1) && isValue(v2) => (v1,v2) match { // do arith
+        case (N(n1), N(n2)) => bop match {
+          case Minus => N(n1 + n2)
+          case Div => N(n1/n2)
+          case Times => N(n1*n2)
+          case Lt | Le | Gt | Ge => B(inequalityVal(bop, v1, v2)) // do inequality (all cases handled by inequalityVal() )
+          case Eq => B(v1 == v2)
+          case Ne => B(v1 != v2)
+        }
+        case _ => throw StuckError(e)
+      }
+      case Binary(And, v1, e2) if isValue(v1) => v1 match {
+        case B(b) => if(b) e2 else B(false)
+        case _ => throw StuckError(e)
+      } // match on And | Or
+      case Binary(Or, v1, e2) if isValue(v1) => v1 match {
+        case B(b) => if(b) B(true) else e2
+        case _ => throw StuckError(e)
+      }
+
+      case If(v1, e2, e3) if isValue(v1) => v1 match {
+        // DoIfTrue and DoIfFalse
+        case B(b) => if(b) e2 else e3
+        case _ => throw StuckError(e)
+      }
+        // Do Decl (x1 not redex)
+      case Decl(mode, x, e1, e2) if !isRedex(mode, e1) => substitute(e2, e1, x) // just sub e1 for x in e2
+
+        // doGetField
+      case GetField(v1, f) if isValue(v1) => v1 match {
+        case Obj(fields) => fields.get(f) match {
+          case None => throw StuckError(e)
+          case Some(v) => v
+        }
+        case _ => throw StuckError(e)
+      }
         /***** More cases here */
       case Call(v1, args) if isValue(v1) =>
         v1 match {
@@ -344,10 +394,24 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         /***** New cases for Lab 4. */
 
       /* Inductive Cases: Search Rules */
-      case Print(e1) => Print(step(e1))
+      case Print(e1) => Print(step(e1)) // searchprint
         /***** Cases from Lab 3. */
-      case Unary(uop, e1) => ???
-        /***** More cases here */
+      case Unary(uop, e1) => Unary(uop, step(e1)) // searchUnary
+      case Binary(bop, e1, e2) if !isValue(e1) => Binary(bop, step(e1) ,e2) // searchBinary1
+      case Binary(bop, v1, e2) if isValue(v1) => Binary(bop, v1, step(e2)) // searchBinary2
+      case If(e1, e2, e3) => If(step(e1) , e2, e3) // searchIf
+      case Decl(mode, x, e1, e2) => Decl(mode, x, step(e1), e2) // searchDecl
+      /***** More cases here */
+        // search object
+      case Obj(fields) if !isValue(e) => fields find {(f) => !isValue(f._2)} match { // finds first key that doesn't map to value
+        case None => throw StuckError(e) // we shouldn't reach this
+        case Some((ff,e1)) => Obj(fields + (ff -> step(e1))) // update this key to map to stepped e
+      }
+          // search getfield
+      case GetField(e1, f) => e1 match {
+        case Obj(_) => GetField(step(e1), f) // step object
+        case _=> throw StuckError(e)
+      }
         /***** Cases needing adapting from Lab 3 */
       case Call(v1 @ Function(_, _, _, _), args) => ???
       case Call(e1, args) => ???
