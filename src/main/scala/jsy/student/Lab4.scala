@@ -373,20 +373,23 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         v1 match {
           case Function(p, params, _, e1) => {
             val pazip = params zip args
-            if (???) {
+            if (pazip forall{  case ((_, MTyp(m,_)), ei) => !isRedex(m, ei)}) { // args should not be reducible
               val e1p = pazip.foldRight(e1) {
-                ???
+                (pa, acc) => pa match {
+                case ((x, _), arg_value) => substitute (acc, arg_value, x)
+                }
               }
               p match {
-                case None => ???
-                case Some(x1) => ???
+                case None => e1p // anonymous function; no more subs required
+                case Some(x1) => substitute(e1p, v1, x1) // sub in function wherever its name appears
               }
             }
-            else {
+            else { // if args are reducible, reduce arg
               val pazipp = mapFirst(pazip) {
-                ???
+                case (param@(_: String, MTyp(m, _)), arg: Expr) if isRedex(m, arg) =>Some((param, step(arg))) // map first reducible arg
+                case _ => None
               }
-              ???
+              Call(v1, pazipp.unzip._2)
             }
           }
           case _ => throw StuckError(e)
