@@ -263,7 +263,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Obj(fields) => Obj(fields mapValues { (exp) => substitute(exp, esub, x)}) // substitute all x in all value expr with esub
       case GetField(e1, f) =>  GetField(substitute(e1,esub,x), f)
     }
-    val fvs = freeVars(e)
+    val fvs = freeVars(esub)
     def fresh(x: String): String = if (fvs contains x) fresh(x + "$") else x // will use this later with rename
     subst(e)
   }
@@ -373,20 +373,18 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         v1 match {
           case Function(p, params, _, e1) => {
             val pazip = params zip args
-            if (pazip forall{  case ((_, MTyp(m,_)), ei) => !isRedex(m, ei)}) { // args should not be reducible
+            if (pazip.forall{  case ((_, MTyp(m,_)), ei) => !isRedex(m, ei) }) { // args should not be reducible
               val e1p = pazip.foldRight(e1) {
-                (pa, acc) => pa match {
-                case ((x, _), arg_value) => substitute (acc, arg_value, x)
-                }
+                case (((x, _), arg_value),acc) => substitute(acc, arg_value, x)
               }
               p match {
                 case None => e1p // anonymous function; no more subs required
-                case Some(x1) => substitute(e1p, v1, x1) // sub in function wherever its name appears
+                case Some(x1) => ??? //substitute(e1p, v1, x1) // sub in function wherever its name appears // call by name
               }
             }
             else { // if args are reducible, reduce arg
               val pazipp = mapFirst(pazip) {
-                case (param@(_: String, MTyp(m, _)), arg: Expr) if isRedex(m, arg) =>Some((param, step(arg))) // map first reducible arg
+                case (param@(_: String, MTyp(m, _)), arg: Expr) if isRedex(m, arg) => Some((param, step(arg))) // map first reducible arg
                 case _ => None
               }
               Call(v1, pazipp.unzip._2)
@@ -426,7 +424,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
        * cases you have missing. You then uncomment this line when you are sure all the cases
        * that you have left the ones that should be stuck.
        */
-      //case _ => throw StuckError(e)
+      case _ => throw StuckError(e)
     }
   }
   
