@@ -247,7 +247,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       }
         /***** Cases needing adapting from Lab 3 */
       case Function(p, params, tann, e1) => {
-        if ((params exists ((pa)=> pa._1 == x )) || p.contains(x)) e
+        if ((params exists ((pa)=> pa._1 == x )) || (p == Some(x))) e
         else Function(p, params, tann, substitute(e1, esub, x))
       }/*p match {
         case Some(pp) => if (pp == x || params.exists(pa => pa._1 == x)) e else Function(p, params, tann, substitute(e1, esub, x))
@@ -275,10 +275,10 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case If(e1, e2, e3) => If(ren(env,e1), ren(env,e2), ren(env,e3))
 
         case Var(y) =>
-          if (env contains y) Var(env(y)) else Var(y) // either rename y or don't (if it is bound)
+          if (env contains y) Var(lookup(env,y)) else Var(y) // either rename y or don't (if it is bound)
         case Decl(mode, y, e1, e2) =>
           val yp = fresh(y)
-          Decl(mode, yp, ren(env,e1), ren(env + (y->yp),e2))
+          Decl(mode, yp, ren(env,e1), ren(extend(env,y,yp),e2))
 
         case Function(p, params, retty, e1) => { // retty = return typ, e1 =body
 
@@ -288,13 +288,12 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
           }
           val (paramsp, envpp) = params.foldRight( (Nil: List[(String,MTyp)], envp) ) { // freshify each param!
             case ((s, mt @ MTyp(_,_)), (prevList , envprev)) => val sp = fresh(s)
-                  if (s!= sp) ((sp, mt) :: prevList, envprev + (s -> sp)) // don't necessarily need if
-                    else ((s,mt) :: prevList, envprev)
+                  ((sp, mt) :: prevList, envprev + (s -> sp)) // don't necessarily need if
           }
           Function(pp, paramsp, retty, ren(envpp,e1))
         }
 
-        case Call(e1, args) => Call(ren(env,e1), args)
+        case Call(e1, args) => Call(ren(env,e1), args map {case (ei) => ren(env,ei)} )
 
         case Obj(fields) => Obj(fields mapValues( (ei) => ren(env,ei)))
         case GetField(e1, f) => GetField(ren(env, e1), f)
@@ -332,7 +331,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       }
       case Binary(bop, v1, v2) if isValue(v1) && isValue(v2) => (v1,v2) match { // do arith
         case (N(n1), N(n2)) => bop match {
-          case Minus => N(n1 + n2)
+          case Minus => N(n1 - n2) // OMG I HAD N1+N2 instead of n1-n2
           case Div => N(n1/n2)
           case Times => N(n1*n2)
           case Lt | Le | Gt | Ge => B(inequalityVal(bop, v1, v2)) // do inequality (all cases handled by inequalityVal() )
@@ -377,7 +376,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
               }
               p match {
                 case None => e1p // anonymous function; no more subs required
-                case Some(x1) => ??? //substitute(e1p,v1, x1) // sub in function wherever its name appears // call by name
+                case Some(x1) => substitute(e1p,v1, x1) // sub in function wherever its name appears // call by name
               }
             }
             else { // if args are reducible, reduce arg
