@@ -118,13 +118,11 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(Plus, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (TNumber,TNumber) => TNumber
         case (TString, TString) => TString
-        case (tgot , TNumber|TString) => err(tgot, e1)
-        case (TNumber|TString, tgot) => err(tgot, e2)
+        case _ => err(typeof(env, e1), e1)
       }
       case Binary(Minus|Times|Div, e1, e2) => (typeof(env ,e1), typeof(env,e2)) match {
         case (TNumber, TNumber) => TNumber
-        case (tgot , TNumber) => err(tgot, e1)
-        case (TNumber, tgot) => err(tgot, e2)
+        case _ => err(typeof(env, e1),e1)
       }
       case Binary(Eq|Ne, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (t1, _) if hasFunctionTyp(t1) => err(t1,e1)
@@ -134,14 +132,11 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(Lt|Le|Gt|Ge, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (TNumber,TNumber) => TBool
         case (TString, TString) => TBool
-        case (tgot , TNumber|TString) => err(tgot, e1)
-        case (TNumber|TString, tgot) => err(tgot, e2)
-        case (tgot1, tgot2) => err(tgot1, e1)
+        case _ => err(typeof(env,e1),e1)
       }
       case Binary(And|Or, e1, e2) => (typeof(env,e1),typeof(env,e2)) match {
         case (TBool, TBool) => TBool
-        case (tgot, TBool) => err(tgot, e1)
-        case (TBool, tgot) => err(tgot, e2)
+        case (tgot,_) => err(tgot, e1)
       }
       case Binary(Seq, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (_ , t2) => t2
@@ -160,27 +155,24 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
           case _ => err(TUndefined, e1)   // error
         }
         // Bind to env2 an environment that extends env1 with bindings for params.
-        val env2 = params.foldLeft(env1:TEnv)((currEnv, a) =>
-          a match {
-            case (s: String, MTyp(_, t)) => extend(currEnv, s, t)
-            case _ => currEnv
+        val env2 = params.foldLeft(env1:TEnv)( {
+            case (currEnv,(s: String, MTyp(_, t))) => extend(currEnv, s, t)
           }) // convert params (String,Mtyp) to map
         // Infer the type of the function body
         val t1 = typeof(env2, e1)
         // Check with the possibly annotated return type
         tann match {
           case None => TFunction(params, t1)
-          case Some(t) => if(t1 == t) TFunction(params, t1) else err(TUndefined, e1)
+          case Some(t) => if(TFunction(params,t1) == TFunction(params,t)) TFunction(params, t1) else err(TFunction(params, t1), e1)
         }
       }
       case Call(e1, args) => typeof(env, e1) match {
-        case TFunction(params, tret) if (params.length == args.length) =>
-          (params zip args).foreach { pa => pa._1 match {
-            case (_, MTyp(_,t)) => if (t != tret) err(tret, e1) // check that they are equal types (otherwise there is an error)
-            case _ => err(tret, e1)
-          }
-          };
+        case TFunction(params, tret) if (params.length == args.length) => {
+          (params zip args).foreach {
+            case ((_, MTyp(_, t)), arg) => if (t != typeof(env, arg)) err(typeof(env, arg), e1) // check that they are equal types (otherwise there is an error)
+        }
           tret
+      }
         case tgot => err(tgot, e1)
       }
       case Obj(fields) => TObj(fields mapValues { (ei) => typeof(env, ei)}) // map expression to its type keep same keys (field names)
@@ -254,14 +246,17 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         Decl(mode, y, substitute(e1, esub, x), new_e2)
       }
         /***** Cases needing adapting from Lab 3 */
-      case Function(p, params, tann, e1) => p match {
-        case Some(pp) => if (pp == x || params.exists(pa => pa._1 == x)) e else substitute(e1, esub, x)
-        case None => if (params.exists(pa => pa._1 == x)) e else substitute(e1, esub, x)
-      }
-      case Call(e1, args) => Call(substitute(e1, esub, x), args map {(ei)=>substitute(ei,esub,x)}) // substitute in for all the args
+      case Function(p, params, tann, e1) => {
+        if ((params exists ((pa)=> pa._1 == x )) || p.contains(x)) e
+        else Function(p, params, tann, substitute(e1, esub, x))
+      }/*p match {
+        case Some(pp) => if (pp == x || params.exists(pa => pa._1 == x)) e else Function(p, params, tann, substitute(e1, esub, x))
+        case None => if (params.exists(pa => pa._1 == x)) e else Function(p, params, tann, substitute(e1, esub, x))
+      }*/
+      case Call(e1, args) => Call(substitute(e1, esub, x), args map {ei => substitute(ei,esub,x)}) // substitute in for all the args
         /***** New cases for Lab 4 */
       case Obj(fields) => Obj(fields mapValues { (exp) => substitute(exp, esub, x)}) // substitute all x in all value expr with esub
-      case GetField(e1, f) =>  GetField(substitute(e1,esub,x), f)
+      case GetField(e1, f) => if (x==f) e else GetField(substitute(e1,esub,x), f)
     }
     val fvs = freeVars(esub)
     def fresh(x: String): String = if (fvs contains x) fresh(x + "$") else x // will use this later with rename
@@ -293,16 +288,16 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
           }
           val (paramsp, envpp) = params.foldRight( (Nil: List[(String,MTyp)], envp) ) { // freshify each param!
             case ((s, mt @ MTyp(_,_)), (prevList , envprev)) => val sp = fresh(s)
-                  if (s!= sp) ((sp, mt) :: prevList, envprev + (s -> sp))
+                  if (s!= sp) ((sp, mt) :: prevList, envprev + (s -> sp)) // don't necessarily need if
                     else ((s,mt) :: prevList, envprev)
           }
           Function(pp, paramsp, retty, ren(envpp,e1))
         }
 
-        case Call(e1, args) => ???
+        case Call(e1, args) => Call(ren(env,e1), args)
 
-        case Obj(fields) => ???
-        case GetField(e1, f) => ???
+        case Obj(fields) => Obj(fields mapValues( (ei) => ren(env,ei)))
+        case GetField(e1, f) => GetField(ren(env, e1), f)
       }
     }
     ren(empty, e)
@@ -374,15 +369,15 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         /***** More cases here */
       case Call(v1, args) if isValue(v1) =>
         v1 match {
-          case Function(p, params, _, e1) => {
+          case Function(p, params, tann, e1) => {
             val pazip = params zip args
-            if (pazip.forall{  case ((_, MTyp(m,_)), ei) => !isRedex(m, ei) }) { // args should not be reducible
+            if (pazip forall{  case ((_, MTyp(m,_)), arg) => !isRedex(m, arg) }) { // args should not be reducible
               val e1p = pazip.foldRight(e1) {
                 case (((x, _), arg_value),acc) => substitute(acc, arg_value, x)
               }
               p match {
                 case None => e1p // anonymous function; no more subs required
-                case Some(x1) => ??? //substitute(e1p, v1, x1) // sub in function wherever its name appears // call by name
+                case Some(x1) => ??? //substitute(e1p,v1, x1) // sub in function wherever its name appears // call by name
               }
             }
             else { // if args are reducible, reduce arg
@@ -417,8 +412,8 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case _=> throw StuckError(e)
       }
         /***** Cases needing adapting from Lab 3 */
-      case Call(v1 @ Function(_, _, _, _), args) => ???
-      case Call(e1, args) => ???
+      //case Call(v1 @ Function(_, _, _, _), args) => ??? //N(88)
+      case Call(e1, args) => Call(step(e1), args)
         /***** New cases for Lab 4. */
 
       /* Everything else is a stuck error. Should not happen if e is well-typed.
