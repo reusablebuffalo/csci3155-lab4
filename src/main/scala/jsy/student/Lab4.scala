@@ -105,8 +105,8 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case B(_) => TBool
       case Undefined => TUndefined
       case S(_) => TString
-      case Var(x) => lookup(env, x)
-      case Decl(mode, x, e1, e2) => typeof(extend(env, x, typeof(env, e1)),e2)
+      case Var(x) => if(env contains x) lookup(env, x) else err(TUndefined,e)
+      case Decl(mode, x, e1, e2) => typeof(extend(env, x, typeof(env, e1)), e2)
       case Unary(Neg, e1) => typeof(env, e1) match {
         case TNumber => TNumber
         case tgot => err(tgot, e1)
@@ -149,7 +149,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case (_ , t2) => t2
       }
       case If(e1, e2, e3) => (typeof(env,e1), typeof(env,e2), typeof(env,e3)) match {
-        case (TBool, t1, t2)  => if(t1 == t2) t1 else err(t1,e1)
+        case (TBool, t1, t2)  => if(t1 == t2) t1 else err(t2,e2) // if it doesn't match the first
         case (tgot, _, _) => err(tgot, e1) // maybe not necessary
       }
       case Function(p, params, tann, e1) => {
@@ -170,7 +170,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         // Check with the possibly annotated return type
         tann match {
           case None => TFunction(params, t1)
-          case Some(t) => if(TFunction(params,t1) == TFunction(params,t)) TFunction(params, t1) else err(TFunction(params, t1), e1)
+          case Some(t) => if(TFunction(params,t1) == TFunction(params,t)) TFunction(params, t1) else err(TFunction(params, t), e)
         }
       }
       case Call(e1, args) => typeof(env, e1) match {
@@ -182,7 +182,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       }
         case tgot => err(tgot, e1)
       }
-      case Obj(fields) => TObj(fields mapValues { (ei) => typeof(env, ei)}) // map expression to its type keep same keys (field names)
+      case Obj(fields) => fields foreach {(ei) => typeof(env,ei._2)}; TObj(fields mapValues { (ei) => typeof(env, ei)}) // catch error, else map
 
       case GetField(e1, f) =>  typeof(env,e1) match { // get type of e1
         case TObj(tfields) => tfields.get(f) match {// e1 must be an obj
