@@ -120,6 +120,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case (TString, TString) => TString
         case (TNumber|TString,tgot) => err(tgot, e2)
         case (tgot, TString|TNumber) => err(tgot,e1)
+        case (tgot1, _) => err(tgot1, e1) // this is correct (trial and error)
       }
       case Binary(Minus|Times|Div, e1, e2) => (typeof(env ,e1), typeof(env,e2)) match {
         case (TNumber, TNumber) => TNumber
@@ -130,13 +131,14 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(Eq|Ne, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (t1, _) if hasFunctionTyp(t1) => err(t1,e1)
         case (_, t2) if hasFunctionTyp(t2) => err(t2, e2)
-        case (t1, t2) => if (t1 == t2) TBool else err(t1, e1)
+        case (t1, t2) => if (t1 == t2) TBool else err(t2, e2)
       }
       case Binary(Lt|Le|Gt|Ge, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (TNumber,TNumber) => TBool
         case (TString, TString) => TBool
         case (TNumber|TString,tgot) => err(tgot, e2)
         case (tgot, TString|TNumber) => err(tgot,e1)
+        case (tgot1, _) => err(tgot1, e1)
       }
       case Binary(And|Or, e1, e2) => (typeof(env,e1),typeof(env,e2)) match {
         case (TBool, TBool) => TBool
