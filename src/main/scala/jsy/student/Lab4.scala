@@ -118,11 +118,14 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(Plus, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (TNumber,TNumber) => TNumber
         case (TString, TString) => TString
-        case _ => err(typeof(env, e1), e1)
+        case (TNumber|TString,tgot) => err(tgot, e2)
+        case (tgot, TString|TNumber) => err(tgot,e1)
       }
       case Binary(Minus|Times|Div, e1, e2) => (typeof(env ,e1), typeof(env,e2)) match {
         case (TNumber, TNumber) => TNumber
-        case _ => err(typeof(env, e1),e1)
+        case (tgot,TNumber) => err(tgot,e1)
+        case (TNumber, tgot) => err(tgot, e2)
+        case (tgot,_)=> err(tgot,e1)
       }
       case Binary(Eq|Ne, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (t1, _) if hasFunctionTyp(t1) => err(t1,e1)
@@ -132,10 +135,12 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(Lt|Le|Gt|Ge, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
         case (TNumber,TNumber) => TBool
         case (TString, TString) => TBool
-        case _ => err(typeof(env,e1),e1)
+        case (TNumber|TString,tgot) => err(tgot, e2)
+        case (tgot, TString|TNumber) => err(tgot,e1)
       }
       case Binary(And|Or, e1, e2) => (typeof(env,e1),typeof(env,e2)) match {
         case (TBool, TBool) => TBool
+        case (TBool, tgot) => err(tgot, e2)
         case (tgot,_) => err(tgot, e1)
       }
       case Binary(Seq, e1, e2) => (typeof(env,e1), typeof(env,e2)) match {
@@ -169,7 +174,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Call(e1, args) => typeof(env, e1) match {
         case TFunction(params, tret) if (params.length == args.length) => {
           (params zip args).foreach {
-            case ((_, MTyp(_, t)), arg) => if (t != typeof(env, arg)) err(typeof(env, arg), e1) // check that they are equal types (otherwise there is an error)
+            case ((_, MTyp(_, t)), arg) => if (t != typeof(env, arg)) err(typeof(env, arg), arg) // check that they are equal types (otherwise there is an error)
         }
           tret
       }
@@ -398,7 +403,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case Binary(bop, e1, e2) if !isValue(e1) => Binary(bop, step(e1) ,e2) // searchBinary1
       case Binary(bop, v1, e2) if isValue(v1) => Binary(bop, v1, step(e2)) // searchBinary2
       case If(e1, e2, e3) => If(step(e1) , e2, e3) // searchIf
-      case Decl(mode, x, e1, e2) => Decl(mode, x, step(e1), e2) // searchDecl
+      case Decl(mode, x, e1, e2) if isRedex(mode,e1)=> Decl(mode, x, step(e1), e2) // searchDecl
       /***** More cases here */
         // search object
       case Obj(fields) if !isValue(e) => fields find {(f) => !isValue(f._2)} match { // finds first key that doesn't map to value
@@ -411,7 +416,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case _=> throw StuckError(e)
       }
         /***** Cases needing adapting from Lab 3 */
-      //case Call(v1 @ Function(_, _, _, _), args) => ??? //N(88)
+      //case Call(v1 @ Function(_, _, _, _), args) => ???
       case Call(e1, args) => Call(step(e1), args)
         /***** New cases for Lab 4. */
 
