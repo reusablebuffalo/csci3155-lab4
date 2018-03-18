@@ -316,7 +316,44 @@ class Lab4Spec(lab4: Lab4Like) extends FlatSpec {
       }
     }
     "SearchCall1" should "perform SearchCall1" in {
-      
+      val fooTrue = Function(None, List(("x", MTyp(MConst, TNumber))), Some(TNumber), Var("x")) // identity function
+      val fooFalse = Function(None, List(("x", MTyp(MConst, TNumber))), Some(TNumber), Unary(Neg,Var("x"))) // additive inverse function
+      assertResult(Call(fooTrue, List(N(13)))) {
+        step(Call(If(B(true), fooTrue,fooFalse ), List(N(13))))
+      }
+    }
+    "SearchCall2" should "perform SearchCall2" in {
+      val fooAdd = Function(None, List(("x", MTyp(MConst, TNumber)), ("y", MTyp(MConst, TNumber)), ("z", MTyp(MName, TNumber))), None, Binary(Plus, Binary(Plus, Var("x"), Var("y")), Var("z")))
+      assertResult(Call(fooAdd, List(N(16), Binary(Minus, N(80), N(1)), If(B(true), N(100), N(1000))))){
+        step(Call(fooAdd, List(Binary(Times, N(8), N(2)), Binary(Minus, N(80), N(1)), If(B(true), N(100), N(1000)))))
+      }
+      assertResult(Call(fooAdd, List(N(16), N(79), If(B(true), N(100), N(1000))))){
+       step(step(Call(fooAdd, List(Binary(Times, N(8), N(2)), Binary(Minus, N(80), N(1)), If(B(true), N(100), N(1000))))))
+      }
+      assertResult(Binary(Plus, Binary(Plus, N(16), N(79)),If(B(true), N(100), N(1000)))) {
+        step(step(step(Call(fooAdd, List(Binary(Times, N(8), N(2)), Binary(Minus, N(80), N(1)), If(B(true), N(100), N(1000)))))))
+      }
+    }
+    "SearchObject" should "perform SearchObject" in {
+      val myObjMap = Map("a" -> Binary(Times, N(8), N(2)), "b" -> Binary(Minus, N(80), N(1)), "c" -> If(B(true), N(100), N(1000)))
+      assertResult(Obj(myObjMap + ("a" -> N(16)))){
+        step(Obj(myObjMap))
+      }
+      assertResult(Obj(myObjMap + ("a" -> N(16)) + ("b" -> N(79)))){
+        step(step(Obj(myObjMap)))
+      }
+      assertResult(Obj(myObjMap + ("a" -> N(16)) + ("b" -> N(79)) + ("c" -> N(100)))){
+        step(step(step(Obj(myObjMap))))
+      }
+    }
+    "SearchGetField" should "perform SearchGetField" in {
+      val myObjMap = Map("a" -> Binary(Times, N(8), N(2)), "b" -> Binary(Minus, N(80), N(1)), "c" -> If(B(true), N(100), N(1000)))
+      assertResult(GetField(Obj(myObjMap + ("a" -> N(16))), "a")){
+        step(GetField(Obj(myObjMap), "a"))
+      }
+      assertResult(GetField(Obj(myObjMap + ("a" -> N(16)) + ("b" -> N(79)) + ("c" -> N(100))), "a")){
+        step(step(step(GetField(Obj(myObjMap), "a"))))
+      }
     }
 
   }
