@@ -161,7 +161,163 @@ class Lab4Spec(lab4: Lab4Like) extends FlatSpec {
     }
 
     /* Step Tests */
-    
+    // do neg
+    "DoNeg" should "perform DoNeg" in {
+      assertResult(N(-9.0)){
+        step(Unary(Neg, N(9.0)))
+      }
+    }
+    "DoNot" should "perform DoNot" in {
+      assert(step(Unary(Not, B(true))) === B(false))
+    }
+    "DoSeq" should "perform DoSeq" in {
+      assert(step(Binary(Seq, N(1.0), Binary(Div, N(1.0), N(0.0)))) === Binary(Div, N(1.0), N(0.0)))
+    }
+    "DoArith" should "perform DoArith" in {
+      assertResult(N(10)){
+        step(Binary(Div, N(100), N(10)))
+      }
+      assertResult(N(110)){
+        step(Binary(Plus, N(100), N(10)))
+      }
+      assertResult(N(90)){
+        step(Binary(Minus, N(100), N(10)))
+      }
+      assertResult(N(1000)){
+        step(Binary(Times, N(100), N(10)))
+      }
+    }
+    "DoPlusString" should "perform DoPlusString" in {
+      assertResult(S("hibye")) {
+        step(Binary(Plus, S("hi"), S("bye")))
+      }
+      intercept[StuckError] {
+        step(Binary(Plus, N(10), S("bye")))
+      }
+    }
+    "DoInequalityNumber and String" should "perform DoInequalityNumber" in {
+      assertResult(B(true)) {
+        step(Binary(Lt, N(12), N(14)))
+      }
+      assertResult(B(true)) {
+        step(Binary(Le, N(12), N(14)))
+      }
+      assertResult(B(false)) {
+        step(Binary(Gt, N(12), N(14)))
+      }
+      assertResult(B(false)) {
+        step(Binary(Ge, N(12), N(14)))
+      }
+      assertResult(B(true)) {
+        step(Binary(Lt, S("a"), S("b")))
+      }
+      assertResult(B(true)) {
+        step(Binary(Le, S("a"), S("a")))
+      }
+      assertResult(B(true)) {
+        step(Binary(Gt, S("abc"), S("aaa")))
+      }
+      assertResult(B(false)) {
+        step(Binary(Ge, S("a"), S("b")))
+      }
+    }
+    "do equality" should "perform doEquality" in {
+      assertResult(B(true)){
+        step(Binary(Eq, Function(None, List(("x", MTyp(MName, TNumber))), None, Binary(Plus, N(1.0), Var("x"))), Function(None, List(("x", MTyp(MName, TNumber))), None, Binary(Plus, N(1.0), Var("x")))))
+      }
+      assertResult(B(false)){
+        step(Binary(Eq, Function(None, List(("y", MTyp(MName, TNumber))), None, Binary(Plus, N(1.0), Var("x"))), Function(None, List(("x", MTyp(MName, TNumber))), None, Binary(Plus, N(1.0), Var("x")))))
+      }
+      assertResult(B(true))
+      {
+        step(step(Binary(Eq, N(1.0), Binary(Plus, N(1.0), N(0.0)))))
+      }
+    }
+    "DoAndTrue, DoAndFalse, DoOrTrue, DoOrFalse " should "perform correct steps" in {
+      assertResult(Binary(And, B(true), B(false))){
+        step(Binary(And, B(true), Binary(And, B(true), B(false))))
+      }
+      assertResult(B(false)){
+        step(Binary(And, B(false), Binary(And, B(true), B(false))))
+      }
+      assertResult(B(true)){
+        step(Binary(Or, B(true), Binary(And, B(true), B(false))))
+      }
+      assertResult(Binary(And, B(true), B(false))){
+        step(Binary(Or, B(false), Binary(And, B(true), B(false))))
+      }
+    }
+    "doPrint" should "perform DoPrint" in {
+      assertResult(Undefined){
+        step(Print(N(1000)))
+      }
+    }
+    "doIfTrue and doIfFalse" should "perform shortcicruits" in {
+      assertResult(Function(None, List(("x", MTyp(MName, TNumber))), None, Binary(Plus, N(1.0), Var("x")))) {
+        step(If(B(true), Function(None, List(("x", MTyp(MName, TNumber))), None, Binary(Plus, N(1.0), Var("x"))), S("fail")))
+      }
+      assertResult(S("fail")) {
+        step(If(B(false), Function(None, List(("x", MTyp(MName, TNumber))), None, Binary(Plus, N(1.0), Var("x"))), S("fail")))
+      }
+    }
+    "DoDecl" should "perform DoDecl" in {
+      assertResult(Binary(Plus, Binary(Div, N(1.0), N(123)), S("g"))) {
+        step(Decl(MName, "g", Binary(Div, N(1.0), N(123)), Binary(Plus, Var("g"), S("g"))))
+      }
+      assert(step(Decl(MConst, "x", N(1.50), Binary(Times, Var("x"), Undefined))) === Binary(Times, N(1.50), Undefined))
+    }
+    "DoCall" should "perform DoCall" in {
+      val foo = Function(None, List(("x",MTyp(MConst, TBool))), None, Binary(Eq, Var("x"), B(true)))
+      assertResult(Binary(Eq, B(false), B(true))){
+        step(Call(foo, List(B(false))))
+      }
+      assertResult(Binary(Eq,B(true),Binary(Plus, N(1.0), Binary(Minus, N(1.0), N(1.0))))){
+        step(Call(Function(None, List(("x",MTyp(MConst, TBool)),("y", MTyp(MName, TNumber))), None, Binary(Eq, Var("x"), Var("y"))), List(B(true), Binary(Plus, N(1.0), Binary(Minus, N(1.0), N(1.0))))))
+      }
+    }
+    "DoCallRec" should "perform DoCallRec" in {
+      val foo = Function(Some("f"),List(("n",MTyp(MConst,TNumber))),Some(TNumber),If(Binary(Eq,Var("n"),N(0.0)),N(0.0),Call(Var("f"),List(Binary(Minus,N(1.0),N(1.0))))))
+      assertResult(If(Binary(Eq, N(1.0), N(0.0)), N(0.0), Call(Function(Some("f"),List(("n",MTyp(MConst,TNumber))),Some(TNumber),If(Binary(Eq,Var("n"),N(0.0)),N(0.0),Call(Var("f"),List(Binary(Minus,N(1.0),N(1.0)))))), List(Binary(Minus, N(1.0), N(1.0)))))) {
+        step(Call(foo, List(N(1.0))))
+      }
+    }
+    "DoGetField" should "perform DoGetField" in {
+      val obj = Obj(Map("a" -> N(1), "b"-> N(8), "de" -> Function(None, List(), None, N(1.0))))
+      assertResult(Function(None,List(),None,N(1.0))){
+        step(GetField(obj, "de"))
+      }
+    }
+    // search rules
+    "SearchUnaryRule" should "perform SearchUnary" in {
+      assert(step(Unary(Neg, Binary(Plus, N(1.0), N(2.0)))) === Unary(Neg, N(3.0)))
+    }
+    "SearchBinary" should "perform SearchBinary" in {
+      assert(step(Binary(Plus, Binary(Plus, N(1.0), N(2.0)), N(3.0))) === Binary(Plus, N(3.0), N(3.0)))
+    }
+    "SearchBinary2" should "perform SearchBinary2" in {
+      assertResult(Binary(Plus, N(1.0), N(2.0))){
+        step(Binary(Plus, N(1.0), Binary(Plus, N(2.0), N(0.0))))
+      }
+    }
+    "SearchPrint" should "perform SearchPrint" in {
+      assert(step(Print(Binary(Minus, N(10), N(7.5)))) === Print(N(2.5))) // eval inner expression first
+    }
+    "SearchIf" should "perform SearchIf" in {
+      assertResult(If(S("hi"), Print(N(1)), N(1.0))) {
+        step(If(Binary(Plus, S("h"), S("i")), Print(N(1)), N(1.0))) // should step e1 first
+      }
+    }
+    "SearchDecl" should "perform SearchDecl" in {
+      assertResult(Decl(MConst, "x", B(true), Binary(And, Var("x"), Binary(And, B(true), B(true))))){
+        step(Decl(MConst, "x", Binary(And, B(true), B(true)), Binary(And, Var("x"), Binary(And, B(true), B(true)))))
+      }
+      assertResult(Binary(And, Binary(And, B(true), B(true)), Binary(And, B(true), B(true)))){
+        step(Decl(MName, "x", Binary(And, B(true), B(true)), Binary(And, Var("x"), Binary(And, B(true), B(true)))))
+      }
+    }
+    "SearchCall1" should "perform SearchCall1" in {
+      
+    }
 
   }
 
