@@ -331,28 +331,36 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case _ => throw StuckError(e)
       }
       case Binary(Seq, v1, e2) if isValue(v1) => e2 // do seq
+
       case Binary(Plus, v1, v2) if isValue(v1) && isValue(v2) => (v1,v2) match { // do plus
         case (S(s1), S(s2)) => S(s1 + s2)
         case (N(n1), N(n2)) => N(n1+n2)
         case _ => throw StuckError(e)
       }
-      case Binary(bop, v1, v2) if isValue(v1) && isValue(v2) => (v1,v2) match { // do arith
-        case (N(n1), N(n2)) => bop match {
-          case Minus => N(n1 - n2) // OMG I HAD N1+N2 instead of n1-n2
-          case Div => N(n1/n2)
-          case Times => N(n1*n2)
-          case Lt | Le | Gt | Ge => B(inequalityVal(bop, v1, v2)) // do inequality (all cases handled by inequalityVal() )
-          case Eq => B(v1 == v2)
-          case Ne => B(v1 != v2)
-        }
-        case _ => throw StuckError(e)
+      case Binary(bop @ (Eq | Ne), v1,v2) if isValue(v1) && isValue(v2) => bop match {
+        case Eq => B(v1 == v2)
+        case Ne => B(v1 != v2)
       }
+        // these binary cases need to come before the general bop case
       case Binary(And, v1, e2) if isValue(v1) => v1 match {
         case B(b) => if(b) e2 else B(false)
         case _ => throw StuckError(e)
       } // match on And | Or
       case Binary(Or, v1, e2) if isValue(v1) => v1 match {
         case B(b) => if(b) B(true) else e2
+        case _ => throw StuckError(e)
+      }
+      case Binary(bop, v1, v2) if isValue(v1) && isValue(v2) => (v1,v2) match { // do arith
+        case (N(n1), N(n2)) => bop match {
+          case Minus => N(n1 - n2) // OMG I HAD N1+N2 instead of n1-n2; this mistake took me literally 3 hours to debug
+          case Div => N(n1/n2)
+          case Times => N(n1*n2)
+          case Lt | Le | Gt | Ge => B(inequalityVal(bop, v1, v2)) // do inequality (all cases handled by inequalityVal() )
+        }
+        case (S(_), S(_)) => bop match {
+          case Lt | Le | Gt | Ge => B(inequalityVal(bop, v1, v2)) // case for strings
+          case _ => throw StuckError(e) // we can only add or compare strings
+        }
         case _ => throw StuckError(e)
       }
 
@@ -413,10 +421,10 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         case Some((ff,e1)) => Obj(fields + (ff -> step(e1))) // update this key to map to stepped e
       }
           // search getfield
-      case GetField(e1, f) => e1 match {
+      case GetField(e1, f) => GetField(step(e1), f)/*e1 match {
         case Obj(_) => GetField(step(e1), f) // step object
         case _=> throw StuckError(e)
-      }
+      }*/
         /***** Cases needing adapting from Lab 3 */
       //case Call(v1 @ Function(_, _, _, _), args) => ???
       case Call(e1, args) => Call(step(e1), args)
