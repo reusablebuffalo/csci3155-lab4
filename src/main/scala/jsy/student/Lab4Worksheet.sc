@@ -122,7 +122,9 @@ strictlyOrdered(myT)
 parse("1+1")
 typeof(empty, parse("const g = (x: const number)=>x+x; g(3+3)"))
 
-iterateStep("const g = (x: const number, y: const number, z: const number, zz: const number, zzz: const number)=>x+x; g(3,4,3+3,4+3,5)")
-iterateStep(Decl(MConst,"factorial",Function(Some("f"),List(("n",MTyp(MConst,TNumber))),None,If(Binary(Eq,Var("n"),N(0.0)),N(1.0),Binary(Times,Var("n"),Call(Var("f"),List(Binary(Minus,Var("n"),N(1.0))))))),Call(Var("factorial"),List(N(3.0)))))
+//iterateStep("const g = (x: const number, y: const number, z: const number, zz: const number, zzz: const number)=>x+x; g(3,4,3+3,4+3,5)")
+//iterateStep(Decl(MConst,"factorial",Function(Some("f"),List(("n",MTyp(MConst,TNumber))),None,If(Binary(Eq,Var("n"),N(0.0)),N(1.0),Binary(Times,Var("n"),Call(Var("f"),List(Binary(Minus,Var("n"),N(1.0))))))),Call(Var("factorial"),List(N(3.0)))))
 
-typeof(empty, Obj(Map("b" -> Binary(Minus, S("hi"), S("bye")), "a" -> Unary(Neg, N(7)), "c" -> Print(S("print this")))))
+//typeof(empty, Obj(Map("b" -> Binary(Minus, S("hi"), S("bye")), "a" -> Unary(Neg, N(7)), "c" -> Print(S("print this")))))
+
+iterateStep("function g(x : name bool, y: number) {console.log(y+1); return false || x || x}name x = (console.log(\"test\"),false);\nfalse||x||x")

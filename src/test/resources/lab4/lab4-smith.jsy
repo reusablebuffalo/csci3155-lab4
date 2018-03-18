@@ -1,0 +1,3 @@
+const g = function (x : name bool, y: bool) {return (y && x)};
+name x = (console.log("test"),false);
+g(x,true)

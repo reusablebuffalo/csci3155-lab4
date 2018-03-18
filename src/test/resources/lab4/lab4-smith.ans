@@ -1,0 +1,10 @@
+## Decl(MConst,g,Function(None,List((x,MTyp(MName,TBool)), (y,MTyp(MConst,TBool))),None,Binary(And,Var(y),Var(x))),Decl(MName,x,Binary(Seq,Print(S(test)),B(false)),Call(Var(g),List(Var(x), B(true))))) : bool
+## step    0: Decl(MConst,g,Function(None,List((x,MTyp(MName,TBool)), (y,MTyp(MConst,TBool))),None,Binary(And,Var(y),Var(x))),Decl(MName,x,Binary(Seq,Print(S(test)),B(false)),Call(Var(g),List(Var(x), B(true)))))
+## step    1: Decl(MName,x,Binary(Seq,Print(S(test)),B(false)),Call(Function(None,List((x,MTyp(MName,TBool)), (y,MTyp(MConst,TBool))),None,Binary(And,Var(y),Var(x))),List(Var(x), B(true))))
+## step    2: Call(Function(None,List((x,MTyp(MName,TBool)), (y,MTyp(MConst,TBool))),None,Binary(And,Var(y),Var(x))),List(Binary(Seq,Print(S(test)),B(false)), B(true)))
+## step    3: Binary(And,B(true),Binary(Seq,Print(S(test)),B(false)))
+## step    4: Binary(Seq,Print(S(test)),B(false))
+test
+## step    5: Binary(Seq,Undefined,B(false))
+## value: B(false)
+false
