@@ -105,7 +105,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       case B(_) => TBool
       case Undefined => TUndefined
       case S(_) => TString
-      case Var(x) => if(env contains x) lookup(env, x) else err(TUndefined,e)
+      case Var(x) => lookup(env, x)
       case Decl(mode, x, e1, e2) => typeof(extend(env, x, typeof(env, e1)), e2)
       case Unary(Neg, e1) => typeof(env, e1) match {
         case TNumber => TNumber
@@ -170,7 +170,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         // Check with the possibly annotated return type
         tann match {
           case None => TFunction(params, t1)
-          case Some(t) => if(TFunction(params,t1) == TFunction(params,t)) TFunction(params, t1) else err(TFunction(params, t), e)
+          case Some(t) => if(TFunction(params,t1) == TFunction(params,t)) TFunction(params, t1) else err(TFunction(params, t), e1)
         }
       }
       case Call(e1, args) => typeof(env, e1) match {
@@ -253,17 +253,14 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
         Decl(mode, y, substitute(e1, esub, x), new_e2)
       }
         /***** Cases needing adapting from Lab 3 */
-      case Function(p, params, tann, e1) => {
-        if ((params exists ((pa)=> pa._1 == x )) || (p == Some(x))) e
-        else Function(p, params, tann, substitute(e1, esub, x))
-      }/*p match {
+      case Function(p, params, tann, e1) => p match {
         case Some(pp) => if (pp == x || params.exists(pa => pa._1 == x)) e else Function(p, params, tann, substitute(e1, esub, x))
         case None => if (params.exists(pa => pa._1 == x)) e else Function(p, params, tann, substitute(e1, esub, x))
-      }*/
+      }
       case Call(e1, args) => Call(substitute(e1, esub, x), args map {ei => substitute(ei,esub,x)}) // substitute in for all the args
         /***** New cases for Lab 4 */
       case Obj(fields) => Obj(fields mapValues { (exp) => substitute(exp, esub, x)}) // substitute all x in all value expr with esub
-      case GetField(e1, f) => if (x==f) e else GetField(substitute(e1,esub,x), f)
+      case GetField(e1, f) => GetField(substitute(e1,esub,x), f)
     }
     val fvs = freeVars(esub)
     def fresh(x: String): String = if (fvs contains x) fresh(x + "$") else x // will use this later with rename
@@ -417,7 +414,7 @@ object Lab4 extends jsy.util.JsyApplication with Lab4Like {
       /***** More cases here */
         // search object
       case Obj(fields) if !isValue(e) => fields find {(f) => !isValue(f._2)} match { // finds first key that doesn't map to value
-        case None => throw StuckError(e) // we shouldn't reach this
+        //case None => throw StuckError(e) // we shouldn't reach this
         case Some((ff,e1)) => Obj(fields + (ff -> step(e1))) // update this key to map to stepped e
       }
           // search getfield
